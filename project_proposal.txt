@@ -1,3 +1,5 @@
+Instructions for submission: Each group should send a plain-text email (subject: [cs231n] project proposal + your SUNet Ids) of your project proposal to cs231n-winter1516-staff@lists.stanford.edu. Both of us should be cc'd
+
 Project Proposal CS231n
 Dan Birman, Dylan Cable
 
