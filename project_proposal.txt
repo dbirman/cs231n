@@ -1,0 +1,10 @@
+Project Proposal CS231n
+Dan Birman, Dylan Cable
+
+Convolutional neural networks are beginning to be seriously explored as candidate architectures for the human visual system. The analogy is no longer purely metaphorical--some researchers have found direct correlates between neural net layer properties and neural responses in model systems such as the macaque (Yamins et al., 2014). We plan to modernize an older model (Simoncelli & Heeger, 1998) of the visual stream dedicated to motion. The original model explicitly coded the features selected for at each "synapse". In contrast, we plan to build a generic conv-net architecture which will be trained to discriminate examples of motion. Our example set will include varied directions of motion, speeds, and potentially other attributes such as type (translational, optic flow, rotation). We expect that without pre-programming specific features into our architecture the trained network will nevertheless exhibit similar features to those found in the human visual stream (e.g. simple and complex cells). Finally, we plan to test whether our architecture can replicate some basic psychophysical findings--such as the ability for motion detection to be invariant to contrast and our ability to decode "motion coherence" from stimuli. 
+
+References
+
+Yamins, D. L., Hong, H., Cadieu, C. F., Solomon, E. A., Seibert, D., & DiCarlo, J. J. (2014). Performance-optimized hierarchical models predict neural responses in higher visual cortex. Proceedings of the National Academy of Sciences, 111(23), 8619-8624.
+
+Simoncelli, E. P., & Heeger, D. J. (1998). A model of neuronal responses in visual area MT. Vision research, 38(5), 743-761.
