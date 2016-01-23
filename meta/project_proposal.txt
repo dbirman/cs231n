@@ -1,0 +1,14 @@
+Instructions for submission: Each group should send a plain-text email (subject: [cs231n] project proposal + your SUNet Ids) of your project proposal to cs231n-winter1516-staff@lists.stanford.edu. Both of us should be cc'd
+
+Project Proposal CS231n
+Dan Birman (dbirman), Dylan Cable (dcable), Steven Laquitaine* (steeve)
+
+Despite the radical simplicity of convolutional neural networks some researchers have found direct correlates between network layer properties and actual neuron responses. In model systems such as the macaque (Yamins et al., 2014) there are clear analogies between the early visual cortex layers (V1-V4) and the properties of a trained convolutional network. We plan to explore this interesting dynamic in the context of motion. Our goal is to modernize an older model of the visual stream dedicated to motion (Simoncelli & Heeger, 1998). The original model explicitly coded the features selected for at each layer, based on the known anatomical properties of macaque V1 and MT. In contrast, we plan to build a generic convolutional neural net architecture which will be trained to discriminate examples of motion. Our example set will include varied directions of motion, speeds, and potentially other attributes such as type (translational, optic flow, rotation). We expect that without pre-programming specific features into our architecture the trained network will nevertheless exhibit similar features to those found in the human visual stream (e.g. simple and complex cells in V1, direction selective layers, speed selective layers, etc). We expect that our choice of training set will have a strong impact on our results, so we are planning to develop some simple tools to generate a large and varied set of motion stimuli. Finally, we plan to test whether our architecture can replicate some basic psychophysical findings, such as the ability to decode "motion coherence" (% of moving dots) from stimuli, without explicitly designing the model with this in mind.
+
+* Steeve is auditing the class, but because he still plans to work with us and commit code to this project we wanted to make it clear that we are a group of three.
+
+References
+
+Yamins, D. L., Hong, H., Cadieu, C. F., Solomon, E. A., Seibert, D., & DiCarlo, J. J. (2014). Performance-optimized hierarchical models predict neural responses in higher visual cortex. Proceedings of the National Academy of Sciences, 111(23), 8619-8624.
+
+Simoncelli, E. P., & Heeger, D. J. (1998). A model of neuronal responses in visual area MT. Vision research, 38(5), 743-761.
