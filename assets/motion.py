@@ -10,7 +10,7 @@ import matplotlib.animation as anim
 class Translate():
 
 	# Initialize
-	def __init__(self,x,y,t,n,velocity,theta):
+	def __init__(self,x,y,t,n,velocity,theta,coherence=1.0):
 		# Data size
 		self.x = x
 		self.y = y
@@ -22,20 +22,30 @@ class Translate():
 		self.velocity = velocity
 		# Angle in Radians np.pi (0 is down)
 		self.theta = theta
+		# Coherence
+		self.coherence = coherence
 
 	# Generate a new motion stimulus
 	def gen(self):
 		# Initialize
 		self.data = np.zeros((self.x,self.y,self.t))
+		c = np.random.rand(self.n,1)<self.coherence
+		notc = (c==False)[:,0]
 		xs = np.random.randint(0,self.x,(self.n,1))
 		ys = np.random.randint(0,self.y,(self.n,1))
 		# Repeatedly place and then move
 		for t in np.arange(self.t):
 			for i in np.arange(len(xs)):
 				self.data[xs[i],ys[i],t] = 255
-			# Move all dots
-			xs = np.rint(xs + self.velocity * np.cos(self.theta))
-			ys = np.rint(ys + self.velocity * np.sin(self.theta))
+			# Move all coherent dots
+			xs[c] = np.rint(xs[c] + self.velocity * np.cos(self.theta))
+			ys[c] = np.rint(ys[c] + self.velocity * np.sin(self.theta))
+			# Move all incoherent dots
+			inc_thetas = np.random.rand(np.sum(notc),1)*np.pi*2
+			xinc = self.velocity * np.cos(inc_thetas)
+			yinc = self.velocity * np.sin(inc_thetas)
+			xs[notc] = np.rint(np.add(xs[notc], xinc))
+			ys[notc] = np.rint(np.add(ys[notc], yinc))
 			# Fix dots that go offscreen
 			xs[xs>=self.x] = xs[xs>=self.x]-self.x
 			xs[xs<0] = xs[xs<0]+self.x
