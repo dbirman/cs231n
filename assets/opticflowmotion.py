@@ -54,11 +54,9 @@ class opticflowmotion():
 		#initial dots position
 		xs = np.random.randint(0,self.x,(self.n,1))
 		ys = np.random.randint(0,self.y,(self.n,1))
-	
-		#store initial position to re-initialize
-		#dots out of boundaries
-		xs0 = xs;
-		ys0 = ys;
+		#copy dots into holder "display" vectors
+		dxs = np.copy(xs)
+		dys = np.copy(ys)
 		
 		#dots motion directions are expanding
 		#w.r.t to center
@@ -69,28 +67,31 @@ class opticflowmotion():
 		# Repeatedly place and then move		
 		for t in np.arange(self.t):			
 			for i in np.arange(len(xs)):
-
 				#update white dots position
 				#each t
-				self.data[xs[i],ys[i],t] = 255		
+				self.data[dxs[i],dys[i],t] = 255		
 										
 			## Move all dots							
-			xs = np.rint(xs - self.velocity * np.sin(self.theta))
-			ys = np.rint(ys + self.velocity * np.cos(self.theta))
+			xs = xs - self.velocity * np.sin(self.theta)
+			ys = ys + self.velocity * np.cos(self.theta)
 				
 			# Fix dots that go offscreen			
-			xs[ys>=self.y] = xc
-			ys[ys>=self.y] = yc
-			ys[xs>=self.x] = yc
-			xs[xs>=self.x] = xc			
+			xs[ys>=self.y-1] = xc
+			ys[ys>=self.y-1] = yc
+			ys[xs>=self.x-1] = yc
+			xs[xs>=self.x-1] = xc			
 			xs[ys<0] = xc
 			ys[ys<0] = yc
 			ys[xs<0] = yc
 			xs[xs<0] = xc
+            
+			dxs = np.rint(xs)
+			dys = np.rint(ys)
+            
 
 			# Revert to int so positions can be parsed correctly
-			xs = xs.astype(int)
-			ys = ys.astype(int)
+			dxs = dxs.astype(int)
+			dys = dys.astype(int)
 
 	# File saving (for later loading into convnets)
 	def fout(self):
