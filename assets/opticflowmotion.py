@@ -63,7 +63,7 @@ class opticflowmotion():
 		#dots motion directions are expanding
 		#w.r.t to center
 		xc = self.x/2
-		yc = self.y/2			
+		yc = self.y/2
 		self.theta = np.arctan2(xc-xs,ys-yc)
 
 		# Repeatedly place and then move		
@@ -79,14 +79,14 @@ class opticflowmotion():
 			ys = np.rint(ys + self.velocity * np.cos(self.theta))
 				
 			# Fix dots that go offscreen			
-			xs[ys>=self.y] = xs0[ys>=self.y]
-			ys[ys>=self.y] = ys0[ys>=self.y]
-			ys[xs>=self.x] = ys0[xs>=self.x]
-			xs[xs>=self.x] = xs0[xs>=self.x]			
-			xs[ys<0] = xs0[ys<0]
-			ys[ys<0] = ys0[ys<0]
-			ys[xs<0] = ys0[xs<0]
-			xs[xs<0] = xs0[xs<0]
+			xs[ys>=self.y] = xc
+			ys[ys>=self.y] = yc
+			ys[xs>=self.x] = yc
+			xs[xs>=self.x] = xc			
+			xs[ys<0] = xc
+			ys[ys<0] = yc
+			ys[xs<0] = yc
+			xs[xs<0] = xc
 
 			# Revert to int so positions can be parsed correctly
 			xs = xs.astype(int)
