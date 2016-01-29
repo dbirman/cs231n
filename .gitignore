@@ -1,2 +1,5 @@
 .ipynb_checkpoints/*.ipynb
+.ipynb_checkpoints\*.ipynb
 *.pyc
+assets\*.pyc
+assets/*.pyc
