@@ -65,7 +65,8 @@ def sgd_momentum(w, dw, config=None):
   # TODO: Implement the momentum update formula. Store the updated value in   #
   # the next_w variable. You should also use and update the velocity v.       #
   #############################################################################
-  pass
+  v = config['momentum'] * v - config['learning_rate']*dw 
+  next_w = w + v
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -99,7 +100,14 @@ def rmsprop(x, dx, config=None):
   # in the next_x variable. Don't forget to update cache value stored in      #  
   # config['cache'].                                                          #
   #############################################################################
-  pass
+  a = config['learning_rate']
+  g = config['decay_rate']
+  
+  r = (1-g)*(dx*dx) + g*config['cache']
+  config['cache'] = r
+  v = a/np.sqrt(r+config['epsilon'])*dx
+  
+  next_x = x - v
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -136,7 +144,23 @@ def adam(x, dx, config=None):
   # the next_x variable. Don't forget to update the m, v, and t variables     #
   # stored in config.                                                         #
   #############################################################################
-  pass
+  a = config['learning_rate']
+  b1 = config['beta1']
+  b2 = config['beta2']
+  epsilon = config['epsilon']
+  t = config['t'] + 1
+  config['t'] = t
+  
+  # from arxiv.org/pdf/1412.6980.pdf
+  m = b1*config['m'] + (1-b1)*dx
+  v = b2*config['v'] + (1-b2)*(dx*dx)
+  nm = m/(1-np.power(b1,t))
+  nv = v/(1-np.power(b2,t))
+
+  next_x = x - (a*nm/(np.sqrt(nv)+epsilon))
+    
+  config['m'] = m
+  config['v'] = v
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

@@ -4,21 +4,20 @@ from cs231n.layers import *
 from cs231n.fast_layers import *
 from cs231n.layer_utils import *
 
-
-class ThreeLayerConvNet(object):
+class CustomConvNet(object):
   """
   A three-layer convolutional network with the following architecture:
   
-  conv - relu - 2x2 max pool - affine - relu - affine - softmax
+    [conv-relu-conv-relu-pool]xN - [affine]xM - [softmax or SVM]
   
   The network operates on minibatches of data that have shape (N, C, H, W)
   consisting of N images, each with height H and width W and with C input
   channels.
   """
   
-  def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
+  def __init__(self, input_dim=(3, 32, 32), num_filters=16, filter_size=3,
                hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-               dtype=np.float32):
+               num_conv_layers=2, num_affine_layers=2, dtype=np.float32):
     """
     Initialize a new network.
     
@@ -36,6 +35,9 @@ class ThreeLayerConvNet(object):
     self.params = {}
     self.reg = reg
     self.dtype = dtype
+    self.fs = filter_size
+    self.ncl = num_conv_layers
+    self.nal = num_affine_layers
     
     ############################################################################
     # TODO: Initialize weights and biases for the three-layer convolutional    #
@@ -47,13 +49,25 @@ class ThreeLayerConvNet(object):
     # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
     # of the output affine layer.                                              #
     ############################################################################
+    #     [conv-relu-conv-relu-pool]xN - [affine]xM - [softmax or SVM]
     C,H,W = input_dim
-    self.params['W1'] = np.random.randn(num_filters,input_dim[0],filter_size,filter_size)*weight_scale
-    self.params['b1'] = np.zeros((1,num_filters))
-    self.params['W2'] = np.random.randn(num_filters*input_dim[1]/2*input_dim[2]/2,hidden_dim)*weight_scale
-    self.params['b2'] = np.zeros((1,hidden_dim))
-    self.params['W3'] = np.random.randn(hidden_dim,num_classes)*weight_scale
-    self.params['b3'] = np.zeros((1,num_classes))
+    
+    for c in np.arange(num_conv_layers):
+        dim_ = C if c==0 else num_filters
+        #fs = filter_size / (c+1)
+        # I will use: W1_1 for conv1_layer1 b1_1
+        self.params['W1_' + `c+1`] = np.random.randn(num_filters,dim_,filter_size,filter_size)*weight_scale/np.sqrt(dim_*filter_size*filter_size)
+        self.params['b1_' + `c+1`] = np.zeros((1,num_filters))
+        self.params['W2_' + `c+1`] = np.random.randn(num_filters,num_filters,filter_size,filter_size)*weight_scale/np.sqrt(num_filters*filter_size*filter_size)
+        self.params['b2_' + `c+1`] = np.zeros((1,num_filters))
+    a=0
+    for a in np.arange(self.nal-1):
+        sz = num_filters*H/(2**self.ncl)*W/(2**self.nal) if a==0 else hidden_dim
+        self.params['A'+`a+1`] = np.random.randn(sz,hidden_dim)*weight_scale/np.sqrt(sz)
+        self.params['Ab'+`a+1`] = np.zeros((1,hidden_dim))
+
+    self.params['A'+`self.nal`] = np.random.randn(hidden_dim,num_classes)
+    self.params['Ab'+`self.nal`] = np.zeros((1,num_classes))
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -68,13 +82,9 @@ class ThreeLayerConvNet(object):
     
     Input / output: Same API as TwoLayerNet in fc_net.py.
     """
-    W1, b1 = self.params['W1'], self.params['b1']
-    W2, b2 = self.params['W2'], self.params['b2']
-    W3, b3 = self.params['W3'], self.params['b3']
     
     # pass conv_param to the forward pass for the convolutional layer
-    filter_size = W1.shape[2]
-    conv_param = {'stride': 1, 'pad': (filter_size - 1) / 2}
+    conv_param = {'stride': 1, 'pad': (self.fs - 1) / 2}
 
     # pass pool_param to the forward pass for the max-pooling layer
     pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
@@ -85,9 +95,19 @@ class ThreeLayerConvNet(object):
     # computing the class scores for X and storing them in the scores          #
     # variable.                                                                #
     ############################################################################
-    out,cache1 = conv_relu_pool_forward(X,W1,b1,conv_param,pool_param)
-    out,cache2 = affine_relu_forward(out,W2,b2)
-    scores,cache3 = affine_forward(out,W3,b3)
+    out = X
+    ccache = []
+    acache = []
+    for c in np.arange(self.ncl):
+        out,cache1 = conv_relu_forward(out,self.params['W1_'+`c+1`],self.params['b1_'+`c+1`],conv_param)
+        out,cache2 = conv_relu_forward(out,self.params['W2_'+`c+1`],self.params['b2_'+`c+1`],conv_param)
+        out,cache3 = max_pool_forward_fast(out,pool_param)
+        ccache.append((cache1,cache2,cache3))
+    for a in np.arange(self.nal):
+        out,cache1 = affine_forward(out,self.params['A'+`a+1`],self.params['Ab'+`a+1`])
+        acache.append(cache1)
+        
+    scores = out
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -103,18 +123,28 @@ class ThreeLayerConvNet(object):
     # for self.params[k]. Don't forget to add L2 regularization!               #
     ############################################################################
     loss, dloss = softmax_loss(scores,y)
-    loss += self.reg*.5*np.sum(W1*W1) + self.reg*.5*np.sum(W2*W2) + self.reg*.5*np.sum(W3*W3)
+    for c in np.arange(self.ncl):
+        loss += self.reg*.5*np.sum(self.params['W1_'+`c+1`]**2)
+        loss += self.reg*.5*np.sum(self.params['W2_'+`c+1`]**2)
+    for a in np.arange(self.nal):
+        loss += self.reg*.5*np.sum(self.params['A'+`a+1`]**2)
 
-    dout,dw3,db3 = affine_backward(dloss,cache3)
-    dout,dw2,db2 = affine_relu_backward(dout,cache2)
-    dx,dw1,db1 = conv_relu_pool_backward(dout,cache1)
+    ##TODO
+    dout = dloss
     
-    grads['W3'] = dw3
-    grads['b3'] = db3
-    grads['W2'] = dw2
-    grads['b2'] = db2
-    grads['W1'] = dw1
-    grads['b1'] = db1
+    for a in np.flipud(np.arange(self.nal)):
+        dout, dw, db = affine_backward(dout,acache[a])
+        grads['A'+`a+1`] = dw
+        grads['Ab'+`a+1`] = db
+    for c in np.flipud(np.arange(self.ncl)):
+        cache1,cache2,cache3 = ccache[c]
+        dout = max_pool_backward_fast(dout,cache3)
+        dout,dw2,db2 = conv_relu_backward(dout,cache2)
+        dout,dw1,db1 = conv_relu_backward(dout,cache1)
+        grads['W1_'+`c+1`] = dw1
+        grads['W2_'+`c+1`] = dw2
+        grads['b1_'+`c+1`] = db1
+        grads['b2_'+`c+1`] = db2
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
