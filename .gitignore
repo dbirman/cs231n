@@ -8,3 +8,5 @@ assets/*.pyc
 *.pyc
 
 *.p
+
+*.data
