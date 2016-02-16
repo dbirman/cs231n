@@ -28,7 +28,7 @@ class Translate():
 	# Generate a new motion stimulus
 	def gen(self):
 		# Initialize
-		self.data = np.zeros((self.x,self.y,self.t))
+		self.data = np.zeros((self.x,self.y,self.t),dtype='uint8')
 		c = np.random.rand(self.n,1)<self.coherence
 		notc = (c==False)[:,0]
 		xs = np.random.randint(0,self.x,(self.n,1))
