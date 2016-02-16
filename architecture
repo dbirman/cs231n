@@ -1,0 +1,13 @@
+Retina: Contrast Normalization (B * X * Y * T)
+LGN: CR layer
+V1s: Dropout
+V1s: CR layer
+V1c: Dropout
+V1c: CR layer
+MT: Dropout
+MT: CR layer
+Readout: Affine
+Readout: Softmax
+
+
+conv-relu standard layer (CR: 3x3x3, out: B * X * Y * T * F)
