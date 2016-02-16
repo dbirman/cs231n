@@ -10,3 +10,5 @@ assets/*.pyc
 *.p
 
 *.data
+
+*.pyc
