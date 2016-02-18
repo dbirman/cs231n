@@ -154,14 +154,14 @@ def conv_forward(x, w, b, conv_param):
     """
   Computes the forward pass for a layer of 3d convolution.
    """
-    from assets.Theano.theano.tensor.nnet.Conv3D import conv3D
-    out = conv3D.conv3D(x,w,b,conv_param['stride'])
+    from theano.tensor.nnet.Conv3D import computeH
+    out = computeH(x,w,b,conv_param['stride'])
     cache = (x,w,b,conv_param['stride'])
     return out, cache
 
 def conv_backward(dout, cache):
-    from assets.Theano.theano.tensor.nnet.Conv3D import grad
-    dx, dw, db, da = conv3D.grad(cache,dout)
+    from theano.tensor.nnet.Conv3D import Conv3D
+    dx, dw, db, da = Conv3D().grad(cache,(dout,))
     return dx, dw, db
 
 
