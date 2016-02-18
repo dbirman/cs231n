@@ -15,7 +15,7 @@ class Translate():
 		self.x = x
 		self.y = y
 		self.t = t
-		self.data = np.zeros((x,y,t))
+		self.data = np.zeros((t,x,y))
 		# Dot num
 		self.n = n
 		# Speed 
@@ -28,7 +28,7 @@ class Translate():
 	# Generate a new motion stimulus
 	def gen(self):
 		# Initialize
-		self.data = np.zeros((self.x,self.y,self.t),dtype='uint8')
+		self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
 		c = np.random.rand(self.n,1)<self.coherence
 		notc = (c==False)[:,0]
 		xs = np.random.randint(0,self.x,(self.n,1))
@@ -36,7 +36,7 @@ class Translate():
 		# Repeatedly place and then move
 		for t in np.arange(self.t):
 			for i in np.arange(len(xs)):
-				self.data[xs[i],ys[i],t] = 255
+				self.data[t,xs[i],ys[i]] = 255
 			# Move all coherent dots
 			xs[c] = np.rint(xs[c] + self.velocity * np.cos(self.theta))
 			ys[c] = np.rint(ys[c] + self.velocity * np.sin(self.theta))
@@ -63,9 +63,9 @@ class Translate():
 	def plot(self):
 		fig = plt.figure()
 		ax = plt.gca()
-		im = plt.imshow(self.data[:,:,0], cmap='Greys_r', vmin=0, vmax=255)	
+		im = plt.imshow(self.data[0,:,:], cmap='Greys_r', vmin=0, vmax=255)	
 		def up(t):
-			im.set_array(self.data[:,:,t])
+			im.set_array(self.data[t,:,:])
 			return im,
 		ani = anim.FuncAnimation(fig, up, np.arange(self.t), interval=50, blit=True, repeat_delay=1000)
 		plt.show()
