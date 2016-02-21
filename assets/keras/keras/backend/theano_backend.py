@@ -2,6 +2,7 @@ import theano
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.tensor.signal import downsample
+from theano.tensor.nnet import conv3d2d
 import numpy as np
 from .common import _FLOATX, _EPSILON
 
@@ -265,6 +266,27 @@ def resize_images(X, height_factor, width_factor, dim_ordering):
         raise Exception('Invalid dim_ordering: ' + dim_ordering)
 
 
+def resize_volumes(X, depth_factor, height_factor, width_factor, dim_ordering):
+    '''Resize the volume contained in a 5D tensor of shape
+    - [batch, channels, depth, height, width] (for 'th' dim_ordering)
+    - [batch, depth, height, width, channels] (for 'tf' dim_ordering)
+    by a factor of (depth_factor, height_factor, width_factor).
+    Both factors should be positive integers.
+    '''
+    if dim_ordering == 'th':
+        output = repeat_elements(X, depth_factor, axis=2)
+        output = repeat_elements(output, height_factor, axis=3)
+        output = repeat_elements(output, width_factor, axis=4)
+        return output
+    elif dim_ordering == 'tf':
+        output = repeat_elements(X, depth_factor, axis=1)
+        output = repeat_elements(output, height_factor, axis=2)
+        output = repeat_elements(output, width_factor, axis=3)
+        return output
+    else:
+        raise Exception('Invalid dim_ordering: ' + dim_ordering)
+
+
 def repeat(x, n):
     '''Repeat a 2D tensor.
 
@@ -356,6 +378,43 @@ def spatial_2d_padding(x, padding=(1, 1), dim_ordering='th'):
     else:
         raise Exception('Invalid dim_ordering: ' + dim_ordering)
     return T.set_subtensor(output[indices], x)
+
+
+def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='th'):
+    '''Pad the 2nd, 3rd and 4th dimensions of a 5D tensor
+    with "padding[0]", "padding[1]" and "padding[2]" (resp.) zeros 
+    left and right.
+    '''
+    input_shape = x.shape
+    if dim_ordering == 'th':
+        output_shape = (input_shape[0],
+                        input_shape[1],
+                        input_shape[2] + 2 * padding[0],
+                        input_shape[3] + 2 * padding[1],
+                        input_shape[4] + 2 * padding[2])
+        output = T.zeros(output_shape)
+        indices = (slice(None),
+                   slice(None),
+                   slice(padding[0], input_shape[2] + padding[0]),
+                   slice(padding[1], input_shape[3] + padding[1]),
+                   slice(padding[2], input_shape[4] + padding[2]))
+
+    elif dim_ordering == 'tf':
+        output_shape = (input_shape[0],
+                        input_shape[1] + 2 * padding[0],
+                        input_shape[2] + 2 * padding[1],
+                        input_shape[3] + 2 * padding[2],
+                        input_shape[4])
+        output = T.zeros(output_shape)
+        indices = (slice(None),
+                   slice(padding[0], input_shape[1] + padding[0]),
+                   slice(padding[1], input_shape[2] + padding[1]),
+                   slice(padding[2], input_shape[3] + padding[2]),
+                   slice(None))
+    else:
+        raise Exception('Invalid dim_ordering: ' + dim_ordering)
+    return T.set_subtensor(output[indices], x)
+
 
 # VALUE MANIPULATION
 
@@ -593,16 +652,20 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th',
 
     if _on_gpu() and dnn.dnn_available():
         if border_mode == 'same':
-            assert(strides == (1, 1))
+            np_kernel = kernel.eval()
+            assert strides[0] <= np_kernel.shape[2], 'strides should be smaller than the convolution window.'
+            assert strides[1] <= np_kernel.shape[3], 'strides should be smaller than the convolution window.'
             conv_out = dnn.dnn_conv(img=x,
                                     kerns=kernel,
                                     border_mode='full')
-            np_kernel = kernel.eval()
-            shift_x = (np_kernel.shape[2] - 1) // 2
-            shift_y = (np_kernel.shape[3] - 1) // 2
+            shift_x = (np_kernel.shape[2] - strides[0]) // 2
+            shift_y = (np_kernel.shape[3] - strides[1]) // 2
+            expected_width = (x.shape[2] + strides[0] - 1) // strides[0]
+            expected_height = (x.shape[3] + strides[1] - 1) // strides[1]
+
             conv_out = conv_out[:, :,
-                                shift_x:x.shape[2] + shift_x,
-                                shift_y:x.shape[3] + shift_y]
+                                shift_x: shift_x + expected_width,
+                                shift_y: shift_y + expected_height]
         else:
             conv_out = dnn.dnn_conv(img=x,
                                     kerns=kernel,
@@ -611,7 +674,9 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th',
     else:
         if border_mode == 'same':
             th_border_mode = 'full'
-            assert(strides == (1, 1))
+            np_kernel = kernel.eval()
+            assert strides[0] <= np_kernel.shape[2], 'strides should be smaller than the convolution window.'
+            assert strides[1] <= np_kernel.shape[3], 'strides should be smaller than the convolution window.'
         elif border_mode == 'valid':
             th_border_mode = 'valid'
         else:
@@ -623,14 +688,77 @@ def conv2d(x, kernel, strides=(1, 1), border_mode='valid', dim_ordering='th',
                                       image_shape=image_shape,
                                       filter_shape=filter_shape)
         if border_mode == 'same':
-            np_kernel = kernel.eval()
-            shift_x = (np_kernel.shape[2] - 1) // 2
-            shift_y = (np_kernel.shape[3] - 1) // 2
+            shift_x = (np_kernel.shape[2] - strides[0]) // 2
+            shift_y = (np_kernel.shape[3] - strides[1]) // 2
+            expected_width = (x.shape[2] + strides[0] - 1) // strides[0]
+            expected_height = (x.shape[3] + strides[1] - 1) // strides[1]
+
             conv_out = conv_out[:, :,
-                                shift_x:x.shape[2] + shift_x,
-                                shift_y:x.shape[3] + shift_y]
+                                shift_x: shift_x + expected_width,
+                                shift_y: shift_y + expected_height]
     if dim_ordering == 'tf':
         conv_out = conv_out.dimshuffle((0, 2, 3, 1))
+    return conv_out
+
+
+def conv3d(x, kernel, strides=(1, 1, 1), border_mode='valid', dim_ordering='th',
+           image_shape=None, filter_shape=None):
+    '''
+    Run on cuDNN if available.
+    border_mode: string, "same" or "valid".
+    '''
+    if dim_ordering not in {'th', 'tf'}:
+        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+
+    if border_mode not in {'same', 'valid'}:
+        raise Exception('Invalid border mode: ' + str(border_mode))
+
+    if dim_ordering == 'tf':
+        # TF uses the last dimension as channel dimension,
+        # instead of the 2nd one.
+        # TH input shape: (samples, input_depth, conv_dim1, conv_dim2, conv_dim3)
+        # TF input shape: (samples, conv_dim1, conv_dim2, conv_dim3, input_depth)
+        # TH kernel shape: (out_depth, input_depth, len_conv_dim1, len_conv_dim2, len_conv_dim3)
+        # TF kernel shape: (len_conv_dim1, len_conv_dim2, len_conv_dim3, input_depth, out_depth)
+        x = x.dimshuffle((0, 4, 1, 2, 3))
+        kernel = kernel.dimshuffle((4, 3, 0, 1, 2))
+        if image_shape:
+            image_shape = (image_shape[0], image_shape[4],
+                           image_shape[1], image_shape[2], image_shape[3])
+        if filter_shape:
+            filter_shape = (filter_shape[4], filter_shape[3],
+                            filter_shape[0], filter_shape[1], filter_shape[2])
+
+    if border_mode == 'same':
+        assert(strides == (1, 1, 1))
+        pad_dim1 = (kernel.shape[2] - 1)
+        pad_dim2 = (kernel.shape[3] - 1)
+        pad_dim3 = (kernel.shape[4] - 1)
+        output_shape = (x.shape[0], x.shape[1],
+                        x.shape[2] + pad_dim1,
+                        x.shape[3] + pad_dim2,
+                        x.shape[4] + pad_dim3)
+        output = T.zeros(output_shape)
+        indices = (slice(None), slice(None),
+                   slice(pad_dim1 // 2, x.shape[2] + pad_dim1 // 2),
+                   slice(pad_dim2 // 2, x.shape[3] + pad_dim2 // 2),
+                   slice(pad_dim3 // 2, x.shape[4] + pad_dim3 // 2))
+        x = T.set_subtensor(output[indices], x)
+        border_mode = 'valid'
+
+    border_mode_3d = (border_mode, border_mode, border_mode)
+    conv_out = conv3d2d.conv3d(signals=x.dimshuffle(0, 2, 1, 3, 4),
+                               filters=kernel.dimshuffle(0, 2, 1, 3, 4),
+                               border_mode=border_mode_3d)
+    conv_out = conv_out.dimshuffle(0, 2, 1, 3, 4)
+
+    # support strides by manually slicing the output
+    if strides != (1, 1, 1):
+        conv_out = conv_out[:, :, ::strides[0], ::strides[1], ::strides[2]]
+
+    if dim_ordering == 'tf':
+        conv_out = conv_out.dimshuffle((0, 2, 3, 4, 1))
+
     return conv_out
 
 
@@ -666,6 +794,64 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
 
     if dim_ordering == 'tf':
         pool_out = pool_out.dimshuffle((0, 2, 3, 1))
+    return pool_out
+
+
+def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
+           dim_ordering='th', pool_mode='max'):
+    if border_mode == 'same':
+        # TODO: add implementation for border_mode="same"
+        raise Exception('border_mode="same" not supported with Theano.')
+    elif border_mode == 'valid':
+        ignore_border = True
+        padding = (0, 0)
+    else:
+        raise Exception('Invalid border mode: ' + str(border_mode))
+
+    if dim_ordering not in {'th', 'tf'}:
+        raise Exception('Unknown dim_ordering ' + str(dim_ordering))
+
+    if dim_ordering == 'tf':
+        x = x.dimshuffle((0, 4, 1, 2, 3))
+
+    if pool_mode == 'max':
+        # pooling over conv_dim2, conv_dim1 (last two channels)
+        output = downsample.max_pool_2d(input=x.dimshuffle(0, 1, 4, 3, 2),
+                                        ds=(pool_size[1], pool_size[0]),
+                                        st=(strides[1], strides[0]),
+                                        ignore_border=ignore_border,
+                                        padding=padding,
+                                        mode='max')
+
+        # pooling over conv_dim3
+        pool_out = downsample.max_pool_2d(input=output.dimshuffle(0, 1, 4, 3, 2),
+                                          ds=(1, pool_size[2]),
+                                          st=(1, strides[2]),
+                                          ignore_border=ignore_border,
+                                          padding=padding,
+                                          mode='max')
+
+    elif pool_mode == 'avg':
+        # pooling over conv_dim2, conv_dim1 (last two channels)
+        output = downsample.max_pool_2d(input=x.dimshuffle(0, 1, 4, 3, 2),
+                                        ds=(pool_size[1], pool_size[0]),
+                                        st=(strides[1], strides[0]),
+                                        ignore_border=ignore_border,
+                                        padding=padding,
+                                        mode='average_exc_pad')
+
+        # pooling over conv_dim3
+        pool_out = downsample.max_pool_2d(input=output.dimshuffle(0, 1, 4, 3, 2),
+                                          ds=(1, pool_size[2]),
+                                          st=(1, strides[2]),
+                                          ignore_border=ignore_border,
+                                          padding=padding,
+                                          mode='average_exc_pad')
+    else:
+        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+
+    if dim_ordering == 'tf':
+        pool_out = pool_out.dimshuffle((0, 2, 3, 4, 1))
     return pool_out
 
 
