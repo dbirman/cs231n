@@ -2,6 +2,7 @@ import numpy as np
 from assets.motion import *
 from assets.opticflowmotion import *
 from assets.rotation import *
+import random
 
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
@@ -20,7 +21,7 @@ def gen_dataset(size, N, types, velocity, theta, coherence, dots, test_prop=0.1)
 #
 # Parameters:
 #
-# size = (time, cols, rows, # dots)
+# size = (time, cols, rows)
 # N = num repetitions of factorial parameters
 # dot_radius (optional) 
 # frames_per_second (optional)
@@ -48,12 +49,14 @@ def gen_dataset(size, N, types, velocity, theta, coherence, dots, test_prop=0.1)
                             all_y[i,:] = [ct,v,a,c,d]
                             i+=1
     # split out 10% of the data
-    tr_fold = np.round(total * (1-test_prop))
-    
-    X_train = all_data[:tr_fold,:,:,:,:]
-    Y_train = all_y[:tr_fold,:]
-    X_test = all_data[tr_fold:,:,:,:,:]
-    Y_test = all_y[tr_fold,:]
+    tr_fold = int(np.round(total * (1-test_prop)))
+    mylist = range(total)
+    train_ind = [ mylist[i] for i in sorted(random.sample(xrange(len(mylist)), tr_fold)) ]
+    test_ind = list(set(mylist) - set(train_ind))
+    X_train = all_data[train_ind,:,:,:,:]
+    Y_train = all_y[train_ind,:]
+    X_test = all_data[test_ind,:,:,:,:]
+    Y_test = all_y[test_ind,:]
         
     return (X_train, Y_train, X_test, Y_test)           
 
