@@ -8,7 +8,7 @@ import matplotlib.animation as anim
 # Rotate #
 #############
 #usage
-#r = Rotational(100,100,5,200,30*1.0/180*np.pi,1,20)
+#r = Rotational(32,32,16,200,30*1.0/180*np.pi,1,1)
 #r.gen()
 #r.plot()
 
@@ -47,7 +47,7 @@ class Rotational():
 			theta = np.arctan2(position[i][1],position[i][0])
 			position[i][:] = [r,theta]
 
-		self.video = [[[0 for i in range(imageWidth)] for j in range(imageHeight)] for k in range(time*frames_per_second)]
+		self.data = [[[0 for i in range(imageWidth)] for j in range(imageHeight)] for k in range(time*frames_per_second)]
 		for t in range(time*frames_per_second):
 			#convert to cartesian
 			position_cartesian = [[position[i][0]*np.cos(position[i][1]),position[i][0]*np.sin(position[i][1])] for i in range(len(position))]
@@ -61,7 +61,7 @@ class Rotational():
 						y_corr = maxY - i
 						x_corr = j - maxX
 						dist = math.sqrt(math.pow(x_corr-position_cartesian[k][0],2) + math.pow(y_corr-position_cartesian[k][1],2))
-						self.video[t][i][j] = min(1,self.video[t][i][j]+math.exp(-math.pow(dist/dot_radius,2)));
+						self.data[t][i][j] = min(1,self.data[t][i][j]+math.exp(-math.pow(dist/dot_radius,2)));
 			#rotate position
 			for i in range(num_dots):
 				position[i][1] = position[i][1] + speed/frames_per_second;
@@ -74,9 +74,9 @@ class Rotational():
 	def plot(self):
 		fig = plt.figure()
 		ax = plt.gca()
-		im = plt.imshow(self.video[0][:][:], cmap='Greys_r', vmin=0, vmax=1)	
+		im = plt.imshow(self.data[0][:][:], cmap='Greys_r', vmin=0, vmax=1)	
 		def up(t):
-			im.set_array(self.video[t][:][:])
+			im.set_array(self.data[t][:][:])
 			return im,
 		ani = anim.FuncAnimation(fig, up, np.arange(self.time*self.frames_per_second), interval=1000.0/self.frames_per_second, blit=True, repeat_delay=1000)
 		plt.show()

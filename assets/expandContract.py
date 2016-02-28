@@ -1,21 +1,21 @@
 
-#opticflowmotion.py
+#expandContract.py
 #
 #
 # author: steeve laquitaine
 #   date: 2016/01/25
-#purpose: simulate expanding optic flow forward motion 
+#purpose: simulate expansion
 #
 #  usage: 
 #
 # in ipython notebook
 #
-# 		from assets.opticflowmotion import *
+# 		from assets.expandContract import *
 # 		%load_ext autoreload  
 #		%autoreload 2
 # 		%matplotlib nbagg
 #
-#		c = opticflowmotion(64,64,32,400,1)
+#		c = expandContract(64,64,32,400,1)
 #		c.gen()
 #		c.plot()
 #
@@ -30,7 +30,7 @@ import matplotlib.animation as anim
 ##############
 
 # Optic flow forward (expanding) backward (contracting)
-class opticflowmotion():
+class expandContract():
 
 	# Initialize
 	def __init__(self,x,y,t,n,velocity):
@@ -38,7 +38,7 @@ class opticflowmotion():
 		self.x = x
 		self.y = y
 		self.t = t
-		self.data = np.zeros((x,y,t))
+		self.data = np.zeros((t,x,y))
 
 		# Dot num
 		self.n = n
@@ -49,7 +49,7 @@ class opticflowmotion():
 		# Generate a new motion stimulus
 	def gen(self):
 		# Initialize
-		self.data = np.zeros((self.x,self.y,self.t))
+		self.data = np.zeros((self.t,self.x,self.y))
 		
 		#initial dots position
 		xs = np.random.randint(0,self.x,(self.n,1))
@@ -69,7 +69,7 @@ class opticflowmotion():
 			for i in np.arange(len(xs)):
 				#update white dots position
 				#each t
-				self.data[dxs[i],dys[i],t] = 255		
+				self.data[t,dxs[i],dys[i]] = 255		
 										
 			## Move all dots							
 			xs = xs - self.velocity * np.sin(self.theta)
@@ -83,12 +83,10 @@ class opticflowmotion():
 			xs[ys<0] = xc
 			ys[ys<0] = yc
 			ys[xs<0] = yc
-			xs[xs<0] = xc
-            
+			xs[xs<0] = xc            
 			dxs = np.rint(xs)
 			dys = np.rint(ys)
             
-
 			# Revert to int so positions can be parsed correctly
 			dxs = dxs.astype(int)
 			dys = dys.astype(int)
@@ -101,10 +99,10 @@ class opticflowmotion():
 	def plot(self):
 		fig = plt.figure()
 		ax = plt.gca()
-		im = plt.imshow(self.data[:,:,0], cmap='Greys_r', vmin=0, vmax=255)	
+		im = plt.imshow(self.data[0,:,:], cmap='Greys_r', vmin=0, vmax=255)	
 		def up(t):
 			#set in motion
-			im.set_array(self.data[:,:,t])		
+			im.set_array(self.data[t,:,:])		
 			return im,
 		ani = anim.FuncAnimation(fig, up, np.arange(self.t), interval=50, blit=True, repeat_delay=1000)
 		plt.show()

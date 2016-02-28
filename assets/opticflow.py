@@ -1,5 +1,5 @@
 
-#opticflowreal.py
+#opticflow.py
 #
 #
 # author: steeve laquitaine
@@ -10,12 +10,12 @@
 #
 # in ipython notebook
 #
-# 		from assets.opticflowmotion import *
+# 		from assets.opticflow import *
 # 		%load_ext autoreload  
 #		%autoreload 2
 # 		%matplotlib nbagg
 #
-#		c = opticflowreal(64,64,32,400,1,0.7)
+#		c = opticflow(64,64,128,100,1,coherence=0.9,direction=1)
 #		c.gen()
 #		c.plot()
 #
@@ -31,7 +31,7 @@ import matplotlib.animation as anim
 ##############
 
 # Optic flow forward (expanding) backward (contracting)
-class opticflowreal():
+class opticflow():
 
 	# Initialize
 	def __init__(self,x,y,t,n,velocity,coherence=1,direction=1):
@@ -57,7 +57,7 @@ class opticflowreal():
 		#get the coherent and incoherent dots
 		#if (dots.coherency ~= coherence)
 		# Initialize all points as black
-		self.data = np.zeros((self.x,self.y,self.t),dtype='uint8')
+		self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
 		c = np.random.rand(self.n,1)<self.coherence
 		notc = (c==False)
 		notcn = np.sum(notc)
@@ -161,7 +161,7 @@ class opticflowreal():
 			ysIn = ysIn.astype(int)             
 # 			set white point                          
 			for i in np.arange(len(xsIn)): 
-				self.data[xsIn[i],ysIn[i],t] = 255
+				self.data[t,xsIn[i],ysIn[i]] = 255
                                                                                                    
             
 	# File saving (for later loading into convnets)
@@ -172,10 +172,10 @@ class opticflowreal():
 	def plot(self):
 		fig = plt.figure()
 		ax = plt.gca()
-		im = plt.imshow(self.data[:,:,0], cmap='Greys_r', vmin=0, vmax=255)	
+		im = plt.imshow(self.data[0,:,:], cmap='Greys_r', vmin=0, vmax=255)	
 		def up(t):
 			#set in motion
-			im.set_array(self.data[:,:,t])		
+			im.set_array(self.data[t,:,:])		
 			return im,
 		ani = anim.FuncAnimation(fig, up, np.arange(self.t), interval=50, blit=True, repeat_delay=1000)
 		plt.show()
