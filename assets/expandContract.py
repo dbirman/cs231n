@@ -15,7 +15,7 @@
 #		%autoreload 2
 # 		%matplotlib nbagg
 #
-#		c = expandContract(64,64,32,400,1)
+#		c = expandContract(64,64,32,400,1,1)
 #		c.gen()
 #		c.plot()
 #
@@ -33,7 +33,7 @@ import matplotlib.animation as anim
 class expandContract():
 
 	# Initialize
-	def __init__(self,x,y,t,n,velocity):
+	def __init__(self,x,y,t,n,velocity,direction):
 		# Data size
 		self.x = x
 		self.y = y
@@ -44,7 +44,10 @@ class expandContract():
 		self.n = n
 		
 		# Speed 
-		self.velocity = velocity			
+		self.velocity = velocity
+
+		# direction
+		self.direction = direction
 
 		# Generate a new motion stimulus
 	def gen(self):
@@ -72,8 +75,8 @@ class expandContract():
 				self.data[t,dxs[i],dys[i]] = 255		
 										
 			## Move all dots							
-			xs = xs - self.velocity * np.sin(self.theta)
-			ys = ys + self.velocity * np.cos(self.theta)
+			xs = xs - self.direction*self.velocity * np.sin(self.theta)
+			ys = ys + self.direction*self.velocity * np.cos(self.theta)
 				
 			# Fix dots that go offscreen			
 			xs[ys>=self.y-1] = xc

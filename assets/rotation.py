@@ -8,15 +8,17 @@ import matplotlib.animation as anim
 # Rotate #
 #############
 #usage
-#r = Rotational(32,32,16,200,30*1.0/180*np.pi,1,1)
+#r = Rotational(32,32,16,200,30*1.0/180*np.pi,1,1,-1)
 #r.gen()
 #r.plot()
+
+#direction : [1 -1] for clockwise/counterclockwise rotation
 
 # Rotational motion in 360 degs
 class Rotational():
 
 	# Initialize
-	def __init__(self,imageWidth,imageHeight,t,n_dots,rotational_speed,dot_radius,frames_per_second):
+	def __init__(self,imageWidth,imageHeight,t,n_dots,rotational_speed,dot_radius,frames_per_second,direction):
 		# Data size
 		self.time = t
 		self.imageWidth = imageWidth #in pixels
@@ -24,7 +26,7 @@ class Rotational():
 		self.maxX = imageWidth/2
 		self.maxY = imageHeight/2
 		self.num_dots = n_dots
-		self.speed = rotational_speed #radians per second
+		self.speed = rotational_speed*direction #radians per second
 		self.frames_per_second = frames_per_second
 		self.dot_radius = dot_radius
 

@@ -3,7 +3,6 @@ from assets.motion import *
 from assets.expandContract import *
 from assets.rotation import *
 from assets.opticflow import *
-import random
 
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
@@ -22,7 +21,7 @@ def gen_dataset(size, N, types, velocity, theta, coherence, dots, direction, tes
 #
 # Parameters:
 #
-# size = (time, cols, rows)
+# size = (time, cols, rows, # dots)
 # N = num repetitions of factorial parameters
 # dot_radius (optional) 
 # frames_per_second (optional)
@@ -45,7 +44,7 @@ def gen_dataset(size, N, types, velocity, theta, coherence, dots, direction, tes
                 for c in coherence:
                     for d in dots:
                         #check direction of optic flow
-                        if t in ['opticflow']:
+                        if t in ['opticflow','rotation','expandContract']:
                             for di in direction: 
                                 mot,ct = gen_motion(t,x,y,ti,d,v,a,c,di)
                                 for n in np.arange(N):
@@ -62,14 +61,12 @@ def gen_dataset(size, N, types, velocity, theta, coherence, dots, direction, tes
                                 i+=1
                             
     # split out 10% of the data
-    tr_fold = int(np.round(total * (1-test_prop)))
-    mylist = range(total)
-    train_ind = [ mylist[i] for i in sorted(random.sample(xrange(len(mylist)), tr_fold)) ]
-    test_ind = list(set(mylist) - set(train_ind))
-    X_train = all_data[train_ind,:,:,:,:]
-    Y_train = all_y[train_ind,:]
-    X_test = all_data[test_ind,:,:,:,:]
-    Y_test = all_y[test_ind,:]
+    tr_fold = np.round(total * (1-test_prop))
+    
+    X_train = all_data[:tr_fold,:,:,:,:]
+    Y_train = all_y[:tr_fold,:]
+    X_test = all_data[tr_fold:,:,:,:,:]
+    Y_test = all_y[tr_fold,:]
         
     return (X_train, Y_train, X_test, Y_test)           
 
@@ -85,12 +82,12 @@ def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction):
 
     #expand contract
     elif type in ['expandContract']:
-        mymot = expandContract(x,y,t,n,velocity)
+        mymot = expandContract(x,y,t,n,velocity,direction)
         ctype = 2
 
     #rotation dots        
     elif type in ['rotation']:
-        mymot = Rotational(x,y,t,n,velocity,dot_radius,frames_per_second) 
+        mymot = Rotational(x,y,t,n,velocity,dot_radius,frames_per_second,direction) 
         ctype = 3
         
     #optic flow
