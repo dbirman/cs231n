@@ -54,6 +54,7 @@ class Translate():
 			# Revert to int so positions can be parsed correctly
 			xs = xs.astype(int)
 			ys = ys.astype(int)
+		return self.data
 
 	# File saving (for later loading into convnets)
 	def fout(self):
