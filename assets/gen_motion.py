@@ -9,7 +9,7 @@ import random
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
 
-def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity, theta, coherence, dots, direction, test_prop=0.1):
+def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, test_prop=0.1):
 ########################
 ## Generate a Dataset ##
 ########################
@@ -29,6 +29,7 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
 # frames_per_second (optional)
 # 
 # Object Parameters
+# obj is a tuple of: (o_t, o_th, o_s, o_v) or None
 # obj_type = 'square', 'circle', 'donut'
 # obj_theta: angle of object motion 0-2*math.pi
 # obj_size: (x,y,r)
@@ -41,6 +42,8 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
 # coherence: [0-1] % moving dots
 # dots: # of dots
 # direction: if optic flow [1 or -1] else = 0
+    if not obj==None:
+        obj_type, obj_size, obj_theta, obj_vel = obj
     ti,x,y = size
     total = len(types)*len(velocity)*len(theta)*len(coherence)*len(dots)*len(direction)*N
     all_data = np.zeros((total,1,ti,x,y))
@@ -49,20 +52,21 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
     i = 0   
     #
     #
-    obj_mask = None
-    otype = 0
-    ox,oy,o_r = obj_size
-    # Build object, since this will always be consistent
-    if obj_type=='square':
-        obj_mask = mask_square(ox,oy)
-        otype = 1
-    elif obj_type=='circle':
-        obj_mask = mask_circle(ox,oy,o_r)
-        otype = 2
-    elif obj_type=='donut':
-        obj_mask = mask_donut(ox,oy,o_r)
-        otype = 3
-    obj = Object_Motion(obj_mask,obj_vel,obj_theta)                          
+    if not obj==None:
+        obj_mask = None
+        otype = 0
+        ox,oy,o_r = obj_size
+        # Build object, since this will always be consistent
+        if obj_type=='square':
+            obj_mask = mask_square(ox,oy)
+            otype = 1
+        elif obj_type=='circle':
+            obj_mask = mask_circle(ox,oy,o_r)
+            otype = 2
+        elif obj_type=='donut':
+            obj_mask = mask_donut(ox,oy,o_r)
+            otype = 3
+        obj = Object_Motion(obj_mask,obj_vel,obj_theta)                          
     for t in types:
         for v in velocity:
             for a in theta:
@@ -76,7 +80,8 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
                                     mot.gen()
                                     all_data[i,0,:,:,:] = mot.data 
                                     all_y[i,:] = [ct,v,a,c,d,di]
-                                    all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
+                                    if not obj==None:
+                                        all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
                                     i+=1                                 
                         else:    
                             mot,ct = gen_motion(t,x,y,ti,d,v,a,c,0)
@@ -84,12 +89,14 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
                                 mot.gen()
                                 all_data[i,0,:,:,:] = mot.data 
                                 all_y[i,:] = [ct,v,a,c,d,0]
-                                all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
+                                if not obj==None:
+                                    all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
                                 i+=1
          
-    ot = otype * np.ones((total,1))
-
-    all_y = np.concatenate((all_y,ot),axis=1)
+    if not obj==None:
+        ot = otype * np.ones((total,1))
+        all_y = np.concatenate((all_y,ot),axis=1)
+        
     # split out 10% of the data
     tr_fold = int(np.round(total*(1-test_prop)))
     mylist = range(total)
