@@ -19,6 +19,12 @@
 #		c.gen()
 #		c.plot()
 #
+#inputs:
+#         x,y,t : image width, height, time (e.g., 32,32,16)
+#     direction : [1 or -1] for expand or contract
+#      velocity : any non negative number (e.g., 1)
+#             n : number of dots (e.g., 50)
+
 #reference: inspired from Dan Birman motion.py module
 
 import numpy as np
@@ -57,10 +63,11 @@ class expandContract():
 		#initial dots position
 		xs = np.random.randint(0,self.x,(self.n,1))
 		ys = np.random.randint(0,self.y,(self.n,1))
+
 		#copy dots into holder "display" vectors
 		dxs = np.copy(xs)
 		dys = np.copy(ys)
-		
+
 		#dots motion directions are expanding
 		#w.r.t to center
 		xc = self.x/2
@@ -75,18 +82,50 @@ class expandContract():
 				self.data[t,dxs[i],dys[i]] = 255		
 										
 			## Move all dots							
-			xs = xs - self.direction*self.velocity * np.sin(self.theta)
-			ys = ys + self.direction*self.velocity * np.cos(self.theta)
-				
-			# Fix dots that go offscreen			
-			xs[ys>=self.y-1] = xc
-			ys[ys>=self.y-1] = yc
-			ys[xs>=self.x-1] = yc
-			xs[xs>=self.x-1] = xc			
-			xs[ys<0] = xc
-			ys[ys<0] = yc
-			ys[xs<0] = yc
-			xs[xs<0] = xc            
+			xs = xs-self.direction*self.velocity*np.sin(self.theta)
+			ys = ys+self.direction*self.velocity*np.cos(self.theta)      
+        
+			if self.direction==1:
+				# Fix dots that go offscreen
+				xs[ys>=self.y-1] = xc
+				ys[ys>=self.y-1] = yc
+				ys[xs>=self.x-1] = yc
+				xs[xs>=self.x-1] = xc
+				xs[ys<0] = xc
+				ys[ys<0] = yc
+				ys[xs<0] = yc
+				xs[xs<0] = xc            
+
+			elif self.direction==-1:     
+				# Fix dots offscreen
+				a = np.where(ys>=self.y-1)[0]                
+				xs[a] = np.random.randint(0,self.x-1,(len(a),1))                
+				ys[a] = np.random.randint(0,self.y-1,(len(a),1))                
+				b = np.where(xs>=self.x-1)[0]                                
+				ys[b] = np.random.randint(0,self.y-1,(len(b),1))                
+				xs[b] = np.random.randint(0,self.x-1,(len(b),1))  
+				aa = np.where(ys<0)[0]                                
+				xs[aa] = np.random.randint(0,self.x-1,(len(aa),1))                
+				bb = np.where(xs<0)[0]                                                
+				ys[aa] = np.random.randint(0,self.y-1,(len(aa),1))                
+				ys[bb] = np.random.randint(0,self.y-1,(len(bb),1))                
+				xs[bb] = np.random.randint(0,self.x-1,(len(bb),1))                
+                
+				dxs = np.rint(xs)
+				dys = np.rint(ys)              
+				# reset position of dots that reached the center
+				if np.any(dys==np.rint(xc)):
+					a = np.where(dys==np.rint(yc))[0]       
+					xs[a] = np.random.randint(0,self.x-1,(len(a),1))                
+					ys[a] = np.random.randint(0,self.y-1,(len(a),1))
+				if np.any(dxs==np.rint(xc)):                       
+					b = np.where(dxs==np.rint(xc))[0]                                   
+					xs[b] = np.random.randint(0,self.x-1,(len(b),1))
+					ys[b] = np.random.randint(0,self.y-1,(len(b),1))
+
+				#re-calculate angle direction
+				self.theta = np.arctan2(xc-xs,ys-yc)                       
+
 			dxs = np.rint(xs)
 			dys = np.rint(ys)
             
