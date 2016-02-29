@@ -4,6 +4,7 @@ from assets.expandContract import *
 from assets.rotation import *
 from assets.opticflow import *
 from assets.object_motion import *
+import random
 
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
@@ -49,14 +50,18 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
     #
     #
     obj_mask = None
+    otype = 0
     ox,oy,o_r = obj_size
     # Build object, since this will always be consistent
     if obj_type=='square':
         obj_mask = mask_square(ox,oy)
+        otype = 1
     elif obj_type=='circle':
         obj_mask = mask_circle(ox,oy,o_r)
+        otype = 2
     elif obj_type=='donut':
-        obj_mask = mask_donut(ox,oy,o_r0
+        obj_mask = mask_donut(ox,oy,o_r)
+        otype = 3
     obj = Object_Motion(obj_mask,obj_vel,obj_theta)                          
     for t in types:
         for v in velocity:
@@ -80,10 +85,13 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
                                 all_y[i,:] = [ct,v,a,c,d,0]
                                 i+=1
                         # current data is in all_data[i,0,...]
-                        all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
-                            
+                        all_data[i-1,0,:,:,:] = obj.gen(all_data[i-1,0,:,:,:])
+         
+    ot = otype * np.ones((total,1))
+
+    all_y = np.concatenate((all_y,ot),axis=1)
     # split out 10% of the data
-    tr_fold = int(np.round(total*(1-test_prop))
+    tr_fold = int(np.round(total*(1-test_prop)))
     mylist = range(total)
     train_ind = [mylist[i] for i in sorted(random.sample(xrange(len(mylist)),tr_fold))]
     test_ind = list(set(mylist)-set(train_ind))
