@@ -76,6 +76,7 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
                                     mot.gen()
                                     all_data[i,0,:,:,:] = mot.data 
                                     all_y[i,:] = [ct,v,a,c,d,di]
+                                    all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
                                     i+=1                                 
                         else:    
                             mot,ct = gen_motion(t,x,y,ti,d,v,a,c,0)
@@ -83,9 +84,8 @@ def gen_dataset(size, N, obj_type, obj_size, obj_theta, obj_vel, types, velocity
                                 mot.gen()
                                 all_data[i,0,:,:,:] = mot.data 
                                 all_y[i,:] = [ct,v,a,c,d,0]
+                                all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
                                 i+=1
-                        # current data is in all_data[i,0,...]
-                        all_data[i-1,0,:,:,:] = obj.gen(all_data[i-1,0,:,:,:])
          
     ot = otype * np.ones((total,1))
 
