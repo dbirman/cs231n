@@ -23,3 +23,5 @@ def visualize_matrix(X,interval_len=500,ubound = 1):
     plt.show()
     return ani
 
+def feature_inversion(model):
+    pass
