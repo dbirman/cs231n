@@ -9,7 +9,7 @@ def visualize_grid(W, ubound=1, padding=1):
     W_full = np.zeros((W.shape[2],W.shape[3]*n_feats + (n_feats-1)*padding,W.shape[4]*n_inputs + (n_inputs-1)*padding))
     for i in range(n_feats):
         for j in range(n_inputs):
-            W_full[:,i*(padding+W.shape[3]):(i+1)*(padding+W.shape[3])-1,j*(padding+W.shape[4]):(j+1)*(padding+W.shape[4])-1] = W[i,:,:,:]
+            W_full[:,i*(padding+W.shape[3]):(i+1)*(padding+W.shape[3])-1,j*(padding+W.shape[4]):(j+1)*(padding+W.shape[4])-1] = W[i,j,:,:,:]
     return visualize_matrix(W_full,ubound=ubound)
 
 def visualize_matrix(X,interval_len=500,ubound = 1):
