@@ -9,7 +9,7 @@ import random
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
 
-def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, test_prop=0.1):
+def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, vt_prop=0.1):
 ########################
 ## Generate a Dataset ##
 ########################
@@ -42,6 +42,15 @@ def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction
 # coherence: [0-1] % moving dots
 # dots: # of dots
 # direction: if optic flow [1 or -1] else = 0
+    # Generate training data
+    X_train,Y_train = gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction)
+    sub = np.rint(N*vt_prop)
+    X_val,Y_val = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
+    X_test,Y_test = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
+        
+    return (X_train, Y_train,X_val,Y_val, X_test, Y_test)  
+
+def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction):
     if not obj==None:
         obj_type, obj_size, obj_theta, obj_vel = obj
     ti,x,y = size
@@ -50,8 +59,6 @@ def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction
     # Y will track all the dep vars in columns 1:5
     all_y = np.zeros((total,6))
     i = 0   
-    #
-    #
     if not obj==None:
         obj_mask = None
         otype = 0
@@ -96,19 +103,8 @@ def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction
     if not obj==None:
         ot = otype * np.ones((total,1))
         all_y = np.concatenate((all_y,ot),axis=1)
-        
-    # split out 10% of the data
-    tr_fold = int(np.round(total*(1-test_prop)))
-    mylist = range(total)
-    train_ind = [mylist[i] for i in sorted(random.sample(xrange(len(mylist)),tr_fold))]
-    test_ind = list(set(mylist)-set(train_ind))
+    return all_data, all_y
     
-    X_train = all_data[train_ind,:,:,:,:]
-    Y_train = all_y[train_ind,:]
-    X_test = all_data[test_ind,:,:,:,:]
-    Y_test = all_y[test_ind,:]
-        
-    return (X_train, Y_train, X_test, Y_test)           
 
 def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction):
     dot_radius = 1
