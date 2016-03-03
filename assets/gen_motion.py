@@ -4,6 +4,7 @@ from assets.expandContract import *
 from assets.rotation import *
 from assets.opticflow import *
 from assets.object_motion import *
+from layers import contrast_norm_forward
 import random
 
 #author: steeve laquitaine, dan birman
@@ -43,12 +44,12 @@ def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction
 # dots: # of dots
 # direction: if optic flow [1 or -1] else = 0
     # Generate training data
-    X_train,Y_train = gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction)
+    X_train,Y_train,X_train_LGN = gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction)
     sub = np.rint(N*vt_prop)
-    X_val,Y_val = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
-    X_test,Y_test = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
+    X_val,Y_val,X_val_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
+    X_test,Y_test,X_test_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
         
-    return (X_train, Y_train,X_val,Y_val, X_test, Y_test)  
+    return (X_train, Y_train,X_val,Y_val, X_test, Y_test,X_train_LGN,X_val_LGN,X_test_LGN)  
 
 def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction):
     if not obj==None:
@@ -56,6 +57,8 @@ def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, directio
     ti,x,y = size
     total = len(types)*len(velocity)*len(theta)*len(coherence)*len(dots)*len(direction)*N
     all_data = np.zeros((total,1,ti,x,y))
+    all_data_LGN = np.zeros((total,1,ti,x,y))
+    
     # Y will track all the dep vars in columns 1:5
     all_y = np.zeros((total,6))
     i = 0   
@@ -83,27 +86,47 @@ def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, directio
                         if t in ['opticflow','rotation','expandContract']:
                             for di in direction: 
                                 mot,ct = gen_motion(t,x,y,ti,d,v,a,c,di)
+                                                                                                
                                 for n in np.arange(N):
                                     mot.gen()
+
+                                    #raw input data
                                     all_data[i,0,:,:,:] = mot.data 
+                                    
+                                    #forward pass through LGN (contrast normalization)
+                                    all_data_LGN[i,0,:,:,:] = contrast_norm_forward(mot.data)                                  
+                                    
+                                    #labels
                                     all_y[i,:] = [ct,v,a,c,d,di]
+                                    
                                     if not obj==None:
                                         all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
+                                        all_data_LGN[i,0,:,:,:] = obj.gen(all_data_LGN[i,0,:,:,:])
                                     i+=1                                 
-                        else:    
+                        else:
+                            #input data
                             mot,ct = gen_motion(t,x,y,ti,d,v,a,c,0)
+                            
                             for n in np.arange(N):
                                 mot.gen()
+                                
+                                #raw input data
                                 all_data[i,0,:,:,:] = mot.data 
+                                
+                                #forward pass through LGN (contrast normalization)
+                                all_data_LGN[i,0,:,:,:] = contrast_norm_forward(mot.data)
+                                
+                                #labels
                                 all_y[i,:] = [ct,v,a,c,d,0]
                                 if not obj==None:
                                     all_data[i,0,:,:,:] = obj.gen(all_data[i,0,:,:,:])
+                                    all_data_LGN[i,0,:,:,:] = obj.gen(all_data_LGN[i,0,:,:,:])
                                 i+=1
          
     if not obj==None:
         ot = otype * np.ones((total,1))
         all_y = np.concatenate((all_y,ot),axis=1)
-    return all_data, all_y
+    return all_data, all_y, all_data_LGN
     
 
 def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction):
