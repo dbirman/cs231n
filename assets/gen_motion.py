@@ -113,7 +113,7 @@ def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction):
     ctype = 0
     #translation
     if type in ['translate']:
-        mymot = Translate(x,y,t,n,velocity,theta,coherence)
+        mymot = Translate(x,y,t,n,dot_radius,velocity,theta,coherence)
         ctype = 1
 
     #expand contract
