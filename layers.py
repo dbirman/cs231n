@@ -10,17 +10,18 @@ def contrast_norm_forward(x):
       for each data point, output is:
           out(i,j,t) = [x(i,j,t) - np.mean(x)]/np.mean(x)  
   """
+
   #when one data point (e.g., one image)
-  if len(x.shape)==3:
-      T, H, W = x.shape
+  if len(np.shape(x))==3:
+      T, H, W = np.shape(x)
       x_resh = np.reshape(x,(T,H*W))            
       a = np.mean(x_resh,axis=1)
       b = np.transpose(np.tile(a,(H*W,1)))
       means = np.reshape(b,(T,H*W))
     
   #when many data points
-  elif len(x.shape)==4:
-      N, T, H, W = x.shape
+  elif len(np.shape(x))==4:
+      N, T, H, W = np.shape(x)
       x_resh = np.reshape(x,(N,T,H*W)) 
       a = np.mean(x_resh,axis=2) 
       b = np.transpose(np.tile(a,(H*W,1,1)))        
