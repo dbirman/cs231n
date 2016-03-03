@@ -10,7 +10,7 @@ import random
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
 
-def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, vt_prop=0.1):
+def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, vt_prop=0.1,dot_radius=1):
 ########################
 ## Generate a Dataset ##
 ########################
@@ -44,14 +44,14 @@ def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction
 # dots: # of dots
 # direction: if optic flow [1 or -1] else = 0
     # Generate training data
-    X_train,Y_train,X_train_LGN = gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction)
+    X_train,Y_train,X_train_LGN = gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction,dot_radius)
     sub = np.rint(N*vt_prop)
-    X_val,Y_val,X_val_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
-    X_test,Y_test,X_test_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots, direction)
+    X_val,Y_val,X_val_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots,direction,dot_radius)
+    X_test,Y_test,X_test_LGN = gen_dataset_(size, sub, obj, types, velocity, theta, coherence, dots,direction, dot_radius)
         
     return (X_train, Y_train,X_val,Y_val, X_test, Y_test,X_train_LGN,X_val_LGN,X_test_LGN)  
 
-def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction):
+def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, direction,dot_radius=1):
     if not obj==None:
         obj_type, obj_size, obj_theta, obj_vel = obj
     ti,x,y = size
@@ -85,7 +85,7 @@ def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, directio
                         #check direction of optic flow
                         if t in ['opticflow','rotation','expandContract']:
                             for di in direction: 
-                                mot,ct = gen_motion(t,x,y,ti,d,v,a,c,di)
+                                mot,ct = gen_motion(t,x,y,ti,d,v,a,c,di,dot_radius)
                                                                                                 
                                 for n in np.arange(N):
                                     mot.gen()
@@ -105,7 +105,7 @@ def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, directio
                                     i+=1                                 
                         else:
                             #input data
-                            mot,ct = gen_motion(t,x,y,ti,d,v,a,c,0)
+                            mot,ct = gen_motion(t,x,y,ti,d,v,a,c,0,dot_radius)
                             
                             for n in np.arange(N):
                                 mot.gen()
@@ -129,8 +129,8 @@ def gen_dataset_(size, N, obj, types, velocity, theta, coherence, dots, directio
     return all_data, all_y, all_data_LGN
     
 
-def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction):
-    dot_radius = 1
+def gen_motion(type,x,y,t,n,velocity,theta,coherence,direction,dot_radius = 1):
+
     frames_per_second = 1
     
     ctype = 0
