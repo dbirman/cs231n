@@ -27,6 +27,17 @@ def visualize_matrix(X,interval_len=50,ubound = 1):
     plt.show()
     return ani
 
+def visualize_matrix2(X,interval_len=50,mymin,mymax):
+    fig = plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(X[0,:,:], cmap='Greys_r', vmin=mymin, vmax=mymax,interpolation='none')
+    def up(t):
+        im.set_array(X[t,:,:])
+        return im,
+    ani = anim.FuncAnimation(fig, up, xrange(X.shape[0]), interval=interval_len, blit=True, repeat_delay=1000)
+    plt.show()
+    return ani
+
 def deprocess_image(x):
     # normalize tensor: center on 0., ensure std is 0.1
     x -= x.mean()

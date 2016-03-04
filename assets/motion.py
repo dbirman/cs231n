@@ -11,7 +11,7 @@ import math
 class Translate():
 
     # Initialize
-    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0):
+    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0,contrast=1,Snoise=0):
         # Data size
         self.x = x
         self.y = y
@@ -26,11 +26,19 @@ class Translate():
         self.theta = theta
         # Coherence
         self.coherence = coherence
+        # Contrast
+        self.contrast = contrast
+        # Stimulus gaussian noise std
+        self.Snoise = Snoise
 
     # Generate a new motion stimulus
     def gen(self):
         # Initialize
-        self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
+        # self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
+        # Add Gaussian noise to stimulus pixels
+        bgColor = np.rint(255/2)
+        self.data = np.random.normal(bgColor,self.Snoise,(self.t,self.x,self.y)).astype('uint8')
+        # self.data = self.data.astype(uint8)
         dot_radius = self.dot_radius
         c = np.random.rand(self.n,1)<self.coherence
         notc = (c==False)[:,0]
