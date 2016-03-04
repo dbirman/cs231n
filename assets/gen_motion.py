@@ -10,7 +10,7 @@ import random
 #author: steeve laquitaine, dan birman
 #purpose: wrapper to run different types of motions
 
-def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, vt_prop=0.1,dot_radius=1,contrast=1,Snoise=0,retina=1):
+def gen_dataset(size, N, obj, types, velocity, theta, coherence, dots, direction, vt_prop=0.1,dot_radius=1,contrast=1,Snoise=5,retina=1):
 ########################
 ## Generate a Dataset ##
 ########################
