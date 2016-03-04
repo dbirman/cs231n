@@ -28,7 +28,7 @@ def visualize_matrix(X,interval_len=50,ubound = 1):
     plt.show()
     return ani
 
-def visualize_matrix2(X,interval_len=50,mymin,mymax):
+def visualize_matrix2(X,interval_len=50,mymin=0,mymax=255):
     fig = plt.figure()
     ax = plt.gca()
     im = plt.imshow(X[0,:,:], cmap='Greys_r', vmin=mymin, vmax=mymax,interpolation='none')
