@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
-import matplotlib.animation as anim
+import matplotlib.animation as anim 
 import numpy as np
 from assets.keras.keras import backend as K
 from assets.keras.keras.layers.convolutional import Convolution3D, MaxPooling3D, ZeroPadding3D
 from assets.keras.keras.models import Sequential
 from assets.keras.keras.layers.normalization import BatchNormalization
+from assets.keras.keras.optimizers import SGD, RMSprop, Adam
 
 def visualize_grid(W, ubound=1, padding=1):
     padding = 1
@@ -126,3 +127,60 @@ def feature_inversion(model_weights,layer_names):
         out.append(f_images)
         
     return out
+
+def obtain_output(model_weights,layer_name,X_train,X_val,X_test):
+    out = []
+    # Input a model, copies the model structure (for now just has a fixed structure)
+    # copies weights into the model
+    # builds feature inversion functions for each layer_name in layer_names []
+    # returns feature inverted images in an []
+    
+    # step 1: build model
+    
+    # working on gradient from: http://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
+
+    nb_c = [3,3,3]
+    nb_p = [2,2]
+    nb_f = [4,4,4]
+    input_img_shape = (1,1, 16, 32, 32)
+    input_img = K.placeholder(input_img_shape)
+
+    model = Sequential()
+    first_layer = ZeroPadding3D((0,1,1),input_shape=(1,16,32,32), dim_ordering='th')
+    first_layer.input = input_img
+    model.add(first_layer)
+    model.add(Convolution3D(nb_f[0],len_conv_dim1=1, len_conv_dim2=nb_c[0], len_conv_dim3=nb_c[0], border_mode='valid', activation='relu', name='LGN'))
+    if(layer_name == 'V1' or layer_name == 'MT'):
+        model.add(BatchNormalization())
+        model.add(MaxPooling3D(pool_size=(1, nb_p[0], nb_p[0])))
+        #model.add(Dropout(0.5))
+        model.add(ZeroPadding3D((1,1,1)))
+        model.add(Convolution3D(nb_f[1],len_conv_dim1=nb_c[1], len_conv_dim2=nb_c[1], len_conv_dim3=nb_c[1], border_mode='valid', activation='relu', name='V1'))
+        if(layer_name == 'MT'):
+            model.add(BatchNormalization())
+            model.add(MaxPooling3D(pool_size=(nb_p[1], nb_p[1], nb_p[1])))
+            #model.add(Dropout(0.5))
+            #model.add(ZeroPadding3D((1,1,1)))
+            model.add(Convolution3D(nb_f[2],len_conv_dim1=nb_c[2], len_conv_dim2=nb_c[2], len_conv_dim3=nb_c[2], border_mode='valid', activation='relu', name='MT'))
+    
+    l = 1e-3#10**(-1*(np.random.rand()*2+4))
+    sgd = RMSprop(lr=l, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(loss='categorical_crossentropy', optimizer=sgd, class_mode='categorical')
+
+    # IGNORE LAST LAYERS
+    #model.add(BatchNormalization())
+    #model.add(Flatten())
+    ##model.add(Dropout(0.5))
+    ##model.add(Dense(4, init='normal', activation='relu', W_regularizer=l2(reg)))
+    #model.add(Dense(nb_classes, init='normal', W_regularizer=l2(r)))
+    #model.add(Activation('softmax'))
+
+    for li in range(len(model.layers)):
+        model.layers[li].set_weights(model_weights.layers[li].get_weights())
+
+    print 'Running layer: ', layer_name
+    
+    Z_train = model.predict_proba(X_train)
+    Z_val = model.predict_proba(X_val)
+    Z_test = model.predict_proba(X_test)
+    return Z_train, Z_val, Z_test
