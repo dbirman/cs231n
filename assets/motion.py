@@ -7,11 +7,13 @@ import math
 # TRANSLATE #
 #############
 
+#author: Dan Birman, modifed by Dylan cable and Steeve Laquitaine
+
 # Translational motion in 360 degs
 class Translate():
 
     # Initialize
-    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0,contrast=1,Snoise=0):
+    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0,contrast=1,Snoise=0.0):
         # Data size
         self.x = x
         self.y = y
@@ -27,7 +29,7 @@ class Translate():
         # Coherence
         self.coherence = coherence
         # Contrast
-        self.contrast = contrast
+        self.contrast = float(contrast)
         # Stimulus gaussian noise std
         self.Snoise = Snoise
 
@@ -35,10 +37,11 @@ class Translate():
     def gen(self):
         # Initialize
         # self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
+        # gray background
+        bgColor = np.rint(255/2)        
         # Add Gaussian noise to stimulus pixels
-        bgColor = np.rint(255/2)
         self.data = np.random.normal(bgColor,self.Snoise,(self.t,self.x,self.y)).astype('uint8')
-        # self.data = self.data.astype(uint8)
+        #dot radius
         dot_radius = self.dot_radius
         c = np.random.rand(self.n,1)<self.coherence
         notc = (c==False)[:,0]
@@ -57,13 +60,15 @@ class Translate():
                         #y_corr = maxY - i
                         #x_corr = j - maxX
                         if(x < self.x and x >= 0 and y < self.y and y >= 0):
+                            #2D Gaussian dots
                             x_corr = x
-                            y_corr = y
+                            y_corr = y                            
                             dist = math.sqrt(math.pow(x_corr-xs[i],2) + math.pow(y_corr-ys[i],2))
                             self.data[t,x,y] = min(255, self.data[t,x,y] + 255*math.exp(-math.pow(dist/dot_radius,2))); #min(1,self.data[t][i][j]+math.exp(-math.pow(dist/dot_radius,2)));
                             #if(dist < 1e-8):
                                 #print self.data[t,x,y]
                             #self.data[t,x,y] = min(self.data[t,x,y],50)
+                            
                 #self.data[t,xs[i],ys[i]] = 255
             # Move all coherent dots
             xs[c] = (xs[c] + self.velocity * np.cos(self.theta))
@@ -82,6 +87,25 @@ class Translate():
             # Revert to int so positions can be parsed correctly
             xs = xs.astype(int)
             ys = ys.astype(int)
+        
+        #implement Weber contrast ((I - Ibg)/Ibg)        
+        #Intensity of the background
+        Ibg = np.mean(self.data)
+        #calculate min and max intensities for the desired contrast
+        IlowC = Ibg-(self.contrast/2*Ibg) 
+        ImaxC = Ibg+(self.contrast/2*Ibg)
+        #make sure intensities are within bounds (0 and 255)
+        if IlowC<0:
+            IlowC=0
+        if ImaxC>255:
+            ImaxC=255
+        #scale motion intensities between lowest/highest intensities
+        #calculated for the desired contrast
+        #note: rounding produces loss in contrast resolution
+        minImotion = np.min(self.data)
+        maxImotion = np.max(self.data)        
+        self.data = np.rint((ImaxC-IlowC)*(self.data-minImotion)/(maxImotion-minImotion)+IlowC)
+        
         return self.data
 
     # File saving (for later loading into convnets)
