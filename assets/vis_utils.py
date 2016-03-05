@@ -117,7 +117,7 @@ def obtain_output(model_weights,layer_name,X_train,X_val,X_test):
     
     # working on gradient from: http://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
 
-    model = empty_model(stop_at=layer_name)
+    model,input_img = empty_model(stop_at=layer_name)
     
     l = 1e-3#10**(-1*(np.random.rand()*2+4))
     sgd = RMSprop(lr=l, decay=1e-6, momentum=0.9, nesterov=True)
@@ -136,7 +136,7 @@ def obtain_output(model_weights,layer_name,X_train,X_val,X_test):
 
 def empty_model(stop_at='MT'):
     # returns an empty model with input img shape 1,1,16,64,64
-    nb_c = [3,3,3]
+    nb_c = [3,3,3,3]
     nb_p = [2,2]
     nb_f = [4,4,4]
     input_img_shape = (1,1, 16, 64, 64)
@@ -148,26 +148,26 @@ def empty_model(stop_at='MT'):
     model = Sequential()
     model.add(first_layer)
     model.add(Convolution3D(nb_f[0],len_conv_dim1=1, len_conv_dim2=nb_c[0], len_conv_dim3=nb_c[0], border_mode='valid',
-                            activation='relu', W_regularizer=l2(r),name='LGN'))
+                            activation='relu', name='LGN'))
     if stop_at=='LGN':
-        return model
+        return (model,input_img)
     model.add(BatchNormalization())
     model.add(MaxPooling3D(pool_size=(1, nb_p[0], nb_p[0])))
     #model.add(Dropout(0.5))
     model.add(ZeroPadding3D((0,1,1)))
     model.add(Convolution3D(nb_f[1],len_conv_dim1=1, len_conv_dim2=nb_c[1], len_conv_dim3=nb_c[1], border_mode='valid',
-                            activation='relu', W_regularizer=l2(r), name='V1s'))
+                            activation='relu', name='V1s'))
     if stop_at=='V1s':
-        return model
+        return (model,input_img)
     model.add(BatchNormalization())
     model.add(MaxPooling3D(pool_size=(nb_p[1], nb_p[1], nb_p[1])))
     #model.add(Dropout(0.5))
     model.add(ZeroPadding3D((0,1,1)))
     model.add(Convolution3D(nb_f[2],len_conv_dim1=1, len_conv_dim2=nb_c[2], len_conv_dim3=nb_c[2], border_mode='valid',
-                            activation='relu', W_regularizer=l2(r), name='V1c'))
+                            activation='relu', name='V1c'))
     if stop_at=='V1c':
-        return model
+        return (model,input_img)
     model.add(BatchNormalization())
     model.add(Convolution3D(nb_f[2],len_conv_dim1=5, len_conv_dim2=nb_c[3], len_conv_dim3=nb_c[3], border_mode='valid',
-                            activation='relu', W_regularizer=l2(r), name='MT'))
-    return model,input_img
+                            activation='relu', name='MT'))
+    return (model,input_img)

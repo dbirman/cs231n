@@ -13,7 +13,7 @@ import math
 class Translate():
 
     # Initialize
-    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0,contrast=1,Snoise=0.0):
+    def __init__(self,x,y,t,n,r,velocity,theta,coherence=1.0,contrast=1,Snoise =0.0):
         # Data size
         self.x = x
         self.y = y
@@ -36,40 +36,47 @@ class Translate():
     # Generate a new motion stimulus
     def gen(self):
         # Initialize
-        # self.data = np.zeros((self.t,self.x,self.y),dtype='uint8')
+        self.data = np.ones((self.t,self.x,self.y),dtype='uint8')
         # gray background
-        bgColor = np.rint(255/2)        
-        # Add Gaussian noise to stimulus pixels
-        self.data = np.random.normal(bgColor,self.Snoise,(self.t,self.x,self.y)).astype('uint8')
+        bgColor = np.rint(255/2)   
+        # set background to bgColor
+        self.data = self.data * bgColor
+        # get max contrast value
+        maxC = (255-bgColor)*self.contrast+bgColor
         #dot radius
-        dot_radius = self.dot_radius
+        dr = self.dot_radius
         c = np.random.rand(self.n,1)<self.coherence
         notc = (c==False)[:,0]
         xs = np.random.randint(0,self.x,(self.n,1))
         ys = np.random.randint(0,self.y,(self.n,1))
+        # generate the dot matrix
+        dot_mat = np.zeros((6*dr+1,6*dr+1)) # goes out 3*dr in both directions from center point
+        cx = 3*dr
+        cy = 3*dr
+        for x in range(6*dr+1):
+            for y in range(6*dr+1):
+                dist = math.sqrt(math.pow(x-cx,2) + math.pow(y-cy,2))
+                dot_mat[x,y] = maxC*math.exp(-math.pow(dist/dr,2))
+                
         # Repeatedly place and then move
         for t in np.arange(self.t):
             for i in np.arange(len(xs)):
                 #dot of radius dot_radius at (xs[i],ys[i])
-                for x in range(int(round(xs[i]-1-2*dot_radius)),int(round(xs[i]+2*dot_radius+1))):
-                    for y in range(int(round(ys[i]-1-2*dot_radius)),int(round(ys[i]+2*dot_radius+1))):
-                        #i = maxY - y
-                        #j = x + maxX
-                        #i = min(max(i,0),imageHeight-1) #constrain within range
-                        #j = min(max(j,0),imageWidth-1) #constrain within range
-                        #y_corr = maxY - i
-                        #x_corr = j - maxX
-                        if(x < self.x and x >= 0 and y < self.y and y >= 0):
-                            #2D Gaussian dots
-                            x_corr = x
-                            y_corr = y                            
-                            dist = math.sqrt(math.pow(x_corr-xs[i],2) + math.pow(y_corr-ys[i],2))
-                            self.data[t,x,y] = min(255, self.data[t,x,y] + 255*math.exp(-math.pow(dist/dot_radius,2))); #min(1,self.data[t][i][j]+math.exp(-math.pow(dist/dot_radius,2)));
-                            #if(dist < 1e-8):
-                                #print self.data[t,x,y]
-                            #self.data[t,x,y] = min(self.data[t,x,y],50)
-                            
-                #self.data[t,xs[i],ys[i]] = 255
+                # get prop of dot_mat to use
+                x_ = 0
+                x__ = 6*dr+1
+                y_ = 0
+                y__ = 6*dr+1
+                if xs[i] < 3*dr:
+                    x_ = 3*dr-xs[i]
+                if xs[i] > (self.x-1)-3*dr:
+                    x__ = cx+self.x-xs[i]
+                if ys[i] < 3*dr:
+                    y_ = 3*dr-ys[i]
+                if ys[i] > (self.y-1)-3*dr:
+                    y__ = cx+self.y-ys[i]
+                self.data[t,max(0,xs[i]-3*dr):min(self.x,xs[i]+3*dr+1),max(0,ys[i]-3*dr):min(self.y,ys[i]+3*dr+1)] += dot_mat[x_:x__,y_:y__]
+                
             # Move all coherent dots
             xs[c] = (xs[c] + self.velocity * np.cos(self.theta))
             ys[c] = (ys[c] + self.velocity * np.sin(self.theta))
@@ -88,25 +95,14 @@ class Translate():
             xs = xs.astype(int)
             ys = ys.astype(int)
         
-        #implement Weber contrast ((I - Ibg)/Ibg)        
-        #Intensity of the background
-        Ibg = np.mean(self.data)
-        #calculate min and max intensities for the desired contrast
-        IlowC = Ibg-(self.contrast/2*Ibg) 
-        ImaxC = Ibg+(self.contrast/2*Ibg)
-        #make sure intensities are within bounds (0 and 255)
-        if IlowC<0:
-            IlowC=0
-        if ImaxC>255:
-            ImaxC=255
-        #scale motion intensities between lowest/highest intensities
-        #calculated for the desired contrast
-        #note: rounding produces loss in contrast resolution
-        minImotion = np.min(self.data)
-        maxImotion = np.max(self.data)        
-        self.data = np.rint((ImaxC-IlowC)*(self.data-minImotion)/(maxImotion-minImotion)+IlowC)
+        # reduce to maxC
+        self.data = np.clip(maxC,0,self.data)
         
-        return self.data
+        # Add Gaussian noise to stimulus pixels
+        if self.Snoise>0:
+            self.data += np.random.normal(0,self.Snoise,(self.t,self.x,self.y))
+        self.data = np.rint(self.data)
+        return self.data.astype('uint8')
 
     # File saving (for later loading into convnets)
     def fout(self):
