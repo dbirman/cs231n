@@ -17,7 +17,7 @@ def validate_model(model_,reps,true_vals):
         scores = []
         for r in range(reps):
             # build a quick dataset
-            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,32,32),10,None,['translate'],[true_spd],angles,[coh],[true_dots],[0])
+            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,64,64),10,None,['translate'],[true_spd],angles,[coh],[true_dots],[0],dot_radius=2,contrast=1,Snoise=1,retina=0)
             Y_train_low[:,2] = Y_train_low[:,2]/math.pi*4
             nb_classes = len(angles)
             Y_train_low_ = np_utils.to_categorical(Y_train_low[:,2]-1, nb_classes)
@@ -49,7 +49,7 @@ def validate_model(model_,reps,true_vals):
         scores = []
         for r in range(reps):
             # build a quick dataset
-            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,32,32),10,None,['translate'],[spd],angles,[true_coh],[true_dots],[0])
+            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,64,64),10,None,['translate'],[spd],angles,[true_coh],[true_dots],[0],dot_radius=2,contrast=1,Snoise=1,retina=0)
             Y_train_low[:,2] = Y_train_low[:,2]/math.pi*4
             nb_classes = len(angles)
             Y_train_low_ = np_utils.to_categorical(Y_train_low[:,2]-1, nb_classes)
@@ -80,7 +80,7 @@ def validate_model(model_,reps,true_vals):
         scores = []
         for r in range(reps):
             # build a quick dataset
-            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,32,32),10,None,['translate'],[true_spd],angles,[true_coh],[dot],[0])
+            X_train_low,Y_train_low,_,_,_,_ = gen_dataset((16,64,64),10,None,['translate'],[true_spd],angles,[true_coh],[dot],[0],dot_radius=2,contrast=1,Snoise=1,retina=0)
             Y_train_low[:,2] = Y_train_low[:,2]/math.pi*4
             nb_classes = len(angles)
             Y_train_low_ = np_utils.to_categorical(Y_train_low[:,2]-1, nb_classes)

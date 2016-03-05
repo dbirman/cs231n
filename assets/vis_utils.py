@@ -63,41 +63,8 @@ def feature_inversion(model_weights,layer_names):
     # returns feature inverted images in an []
     
     # step 1: build model
-    
+    model,input_img = empty_model()
     # working on gradient from: http://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
-
-    nb_c = [3,3,3]
-    nb_p = [2,2]
-    nb_f = [4,4,4]
-    input_img_shape = (1,1, 16, 32, 32)
-    input_img = K.placeholder(input_img_shape)
-
-    model = Sequential()
-    first_layer = ZeroPadding3D((0,1,1),input_shape=(1,16,32,32), dim_ordering='th')
-    first_layer.input = input_img
-    model.add(first_layer)
-    model.add(Convolution3D(nb_f[0],len_conv_dim1=1, len_conv_dim2=nb_c[0], len_conv_dim3=nb_c[0], border_mode='valid',
-                             activation='relu', name='LGN'))
-    model.add(BatchNormalization())
-    model.add(MaxPooling3D(pool_size=(1, nb_p[0], nb_p[0])))
-    #model.add(Dropout(0.5))
-    model.add(ZeroPadding3D((1,1,1)))
-    model.add(Convolution3D(nb_f[1],len_conv_dim1=nb_c[1], len_conv_dim2=nb_c[1], len_conv_dim3=nb_c[1], border_mode='valid',
-                            activation='relu', name='V1'))
-    model.add(BatchNormalization())
-    model.add(MaxPooling3D(pool_size=(nb_p[1], nb_p[1], nb_p[1])))
-    #model.add(Dropout(0.5))
-    #model.add(ZeroPadding3D((1,1,1)))
-    model.add(Convolution3D(nb_f[2],len_conv_dim1=nb_c[2], len_conv_dim2=nb_c[2], len_conv_dim3=nb_c[2], border_mode='valid',
-                            activation='relu', name='MT'))
-
-    # IGNORE LAST LAYERS
-    #model.add(BatchNormalization())
-    #model.add(Flatten())
-    ##model.add(Dropout(0.5))
-    ##model.add(Dense(4, init='normal', activation='relu', W_regularizer=l2(reg)))
-    #model.add(Dense(nb_classes, init='normal', W_regularizer=l2(r)))
-    #model.add(Activation('softmax'))
 
     layer_dict = dict([(layer.name, layer) for layer in model.layers])
     
@@ -106,7 +73,7 @@ def feature_inversion(model_weights,layer_names):
 
     for layer_name in layer_names:
         print 'Running layer: ', layer_name
-        f_images = np.zeros((4,16,32,32))
+        f_images = np.zeros((4,16,64,64))
         for filter_index in range(4):
             # build a loss function that maximizes the activation
             # of the nth filter of the layer considered
@@ -124,7 +91,7 @@ def feature_inversion(model_weights,layer_names):
             
             step = 1000
             # we start from a gray image with some noise
-            input_img_data = np.random.randn(1,1,16,32,32) * 20 + 128.
+            input_img_data = np.random.randn(1,1,16,64,64) * 20 + 128.
             # run gradient ascent for 20 steps
             for i in range(20):
                 loss_value, grads_value = iterate([input_img_data])
@@ -150,41 +117,11 @@ def obtain_output(model_weights,layer_name,X_train,X_val,X_test):
     
     # working on gradient from: http://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
 
-    nb_c = [3,3,3]
-    nb_p = [2,2]
-    nb_f = [4,4,4]
-    input_img_shape = (1,1, 16, 32, 32)
-    input_img = K.placeholder(input_img_shape)
-
-    model = Sequential()
-    first_layer = ZeroPadding3D((0,1,1),input_shape=(1,16,32,32), dim_ordering='th')
-    first_layer.input = input_img
-    model.add(first_layer)
-    model.add(Convolution3D(nb_f[0],len_conv_dim1=1, len_conv_dim2=nb_c[0], len_conv_dim3=nb_c[0], border_mode='valid', activation='relu', name='LGN'))
-    if(layer_name == 'V1' or layer_name == 'MT'):
-        model.add(BatchNormalization())
-        model.add(MaxPooling3D(pool_size=(1, nb_p[0], nb_p[0])))
-        #model.add(Dropout(0.5))
-        model.add(ZeroPadding3D((1,1,1)))
-        model.add(Convolution3D(nb_f[1],len_conv_dim1=nb_c[1], len_conv_dim2=nb_c[1], len_conv_dim3=nb_c[1], border_mode='valid', activation='relu', name='V1'))
-        if(layer_name == 'MT'):
-            model.add(BatchNormalization())
-            model.add(MaxPooling3D(pool_size=(nb_p[1], nb_p[1], nb_p[1])))
-            #model.add(Dropout(0.5))
-            #model.add(ZeroPadding3D((1,1,1)))
-            model.add(Convolution3D(nb_f[2],len_conv_dim1=nb_c[2], len_conv_dim2=nb_c[2], len_conv_dim3=nb_c[2], border_mode='valid', activation='relu', name='MT'))
+    model = empty_model(stop_at=layer_name)
     
     l = 1e-3#10**(-1*(np.random.rand()*2+4))
     sgd = RMSprop(lr=l, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, class_mode='categorical')
-
-    # IGNORE LAST LAYERS
-    #model.add(BatchNormalization())
-    #model.add(Flatten())
-    ##model.add(Dropout(0.5))
-    ##model.add(Dense(4, init='normal', activation='relu', W_regularizer=l2(reg)))
-    #model.add(Dense(nb_classes, init='normal', W_regularizer=l2(r)))
-    #model.add(Activation('softmax'))
 
     for li in range(len(model.layers)):
         model.layers[li].set_weights(model_weights.layers[li].get_weights())
@@ -195,3 +132,42 @@ def obtain_output(model_weights,layer_name,X_train,X_val,X_test):
     Z_val = model.predict_proba(X_val)
     Z_test = model.predict_proba(X_test)
     return Z_train, Z_val, Z_test
+
+
+def empty_model(stop_at='MT'):
+    # returns an empty model with input img shape 1,1,16,64,64
+    nb_c = [3,3,3]
+    nb_p = [2,2]
+    nb_f = [4,4,4]
+    input_img_shape = (1,1, 16, 64, 64)
+    input_img = K.placeholder(input_img_shape)
+
+    first_layer = ZeroPadding3D((0,1,1),input_shape=(1,16,64,64), dim_ordering='th')
+    first_layer.input = input_img
+    
+    model = Sequential()
+    model.add(first_layer)
+    model.add(Convolution3D(nb_f[0],len_conv_dim1=1, len_conv_dim2=nb_c[0], len_conv_dim3=nb_c[0], border_mode='valid',
+                            activation='relu', W_regularizer=l2(r),name='LGN'))
+    if stop_at=='LGN':
+        return model
+    model.add(BatchNormalization())
+    model.add(MaxPooling3D(pool_size=(1, nb_p[0], nb_p[0])))
+    #model.add(Dropout(0.5))
+    model.add(ZeroPadding3D((0,1,1)))
+    model.add(Convolution3D(nb_f[1],len_conv_dim1=1, len_conv_dim2=nb_c[1], len_conv_dim3=nb_c[1], border_mode='valid',
+                            activation='relu', W_regularizer=l2(r), name='V1s'))
+    if stop_at=='V1s':
+        return model
+    model.add(BatchNormalization())
+    model.add(MaxPooling3D(pool_size=(nb_p[1], nb_p[1], nb_p[1])))
+    #model.add(Dropout(0.5))
+    model.add(ZeroPadding3D((0,1,1)))
+    model.add(Convolution3D(nb_f[2],len_conv_dim1=1, len_conv_dim2=nb_c[2], len_conv_dim3=nb_c[2], border_mode='valid',
+                            activation='relu', W_regularizer=l2(r), name='V1c'))
+    if stop_at=='V1c':
+        return model
+    model.add(BatchNormalization())
+    model.add(Convolution3D(nb_f[2],len_conv_dim1=5, len_conv_dim2=nb_c[3], len_conv_dim3=nb_c[3], border_mode='valid',
+                            activation='relu', W_regularizer=l2(r), name='MT'))
+    return model,input_img
