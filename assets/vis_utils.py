@@ -17,7 +17,7 @@ def visualize_grid(W, ubound=1, padding=1):
             W_full[:,i*(padding+W.shape[3]):(i+1)*(padding+W.shape[3])-1,j*(padding+W.shape[4]):(j+1)*(padding+W.shape[4])-1] = W[i,j,:,:,:]
     return visualize_matrix(W_full,ubound=ubound)
 
-def visualize_matrix(X,interval_len=50,ubound = 1):
+def visualize_matrix(X,interval_len=250,ubound = 1):
     fig = plt.figure()
     ax = plt.gca()
     im = plt.imshow(X[0,:,:], cmap='Greys_r', vmin=-ubound, vmax=ubound,interpolation='none')
@@ -89,9 +89,9 @@ def feature_inversion(model_weights,layer_names):
             # this function returns the loss and grads given the input picture
             iterate = K.function([input_img], [loss, grads])
             
-            step = 1000
+            step = 1e5
             # we start from a gray image with some noise
-            input_img_data = np.random.randn(1,1,16,64,64) * 20 + 128.
+            input_img_data = np.random.randn(1,1,16,64,64) * 80 + 128.
             # run gradient ascent for 20 steps
             for i in range(20):
                 loss_value, grads_value = iterate([input_img_data])
