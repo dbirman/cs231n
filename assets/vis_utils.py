@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim 
 import numpy as np
 from assets.keras.keras import backend as K
+from assets.keras.keras.layers.core import Dense, Activation, Flatten
 from assets.keras.keras.layers.convolutional import Convolution3D, MaxPooling3D, ZeroPadding3D
 from assets.keras.keras.models import Sequential
 from assets.keras.keras.layers.normalization import BatchNormalization
@@ -170,4 +171,57 @@ def empty_model(stop_at='MT'):
     model.add(BatchNormalization())
     model.add(Convolution3D(nb_f[2],len_conv_dim1=5, len_conv_dim2=nb_c[3], len_conv_dim3=nb_c[3], border_mode='valid',
                             activation='relu', name='MT'))
+    if stop_at=='FULL':
+        model.add(Flatten())
+        model.add(Dense(8, init='normal', name='FULL'))
+        
     return (model,input_img)
+
+
+def class_inversion(model_weights):
+    # Input a model, copies the model structure (for now just has a fixed structure)
+    # copies weights into the model
+    # builds feature inversion functions for each layer_name in layer_names []
+    # returns feature inverted images in an []
+    
+    # step 1: build model
+    model,input_img = empty_model(stop_at='FULL')
+    # working on gradient from: http://blog.keras.io/how-convolutional-neural-networks-see-the-world.html
+
+    layer_dict = dict([(layer.name, layer) for layer in model.layers])
+    
+    for li in range(len(model.layers)):
+        model.layers[li].set_weights(model_weights.layers[li].get_weights())
+
+    print 'Running class inversion'
+    f_images = np.zeros((8,16,64,64))
+    for c in range(8):
+        # build a loss function that maximizes the activation
+        # of the nth filter of the layer considered
+        layer_output = layer_dict['FULL'].get_output()
+        
+        loss = layer_output[0,c]
+
+        # compute the gradient of the input picture wrt this loss
+        grads = K.gradients(loss, input_img)[0]
+
+        # normalization trick: we normalize the gradient
+        grads /= (K.sqrt(K.mean(K.square(grads))) + 1e-5)
+
+        # this function returns the loss and grads given the input picture
+        iterate = K.function([input_img], [loss, grads])
+
+        step = 1e6
+        # we start from a gray image with some noise
+        input_img_data = np.random.randn(1,1,16,64,64) * 128 + 128.
+        # run gradient ascent for 20 steps
+        for i in range(100):
+            loss_value, grads_value = iterate([input_img_data])
+            input_img_data += grads_value * step
+
+        img = input_img_data[0,0,:,:,:]
+        img = deprocess_image(img)
+
+        f_images[c,:,:,:] = img
+                    
+    return f_images
